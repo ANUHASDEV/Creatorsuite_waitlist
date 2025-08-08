@@ -1,219 +1,239 @@
-import React, { useState, useEffect, useRef } from 'react';
-
-// --- Reusable Components & Hooks ---
-
-const CheckIcon = () => (
-    <svg className="w-6 h-6 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-    </svg>
-);
-
-// Updated to remove scroll animations
-const FeatureListItem = ({ title, children }) => {
-    return (
-        <div className="flex items-start gap-4">
-            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-purple-600 flex items-center justify-center mt-1">
-                <CheckIcon />
-            </div>
-            <div>
-                <h3 className="text-lg font-bold text-gray-900">{title}</h3>
-                <p className="mt-1 text-gray-600 leading-relaxed">{children}</p>
-            </div>
-        </div>
-    );
-};
-
-// --- Success Modal Component ---
-const SuccessModal = ({ onClose }) => (
-    <div className="fixed inset-0 bg-green-400/20 backdrop-blur-sm flex items-center justify-center p-4 z-50 transition-opacity duration-300">
-        <div className="bg-white rounded-2xl p-8 sm:p-10 text-center max-w-md w-full shadow-2xl relative transform transition-all duration-300 scale-95 animate-scale-in">
-            <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors">
-                <svg className="w-6 h-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
-            </button>
-            <div className="mx-auto w-16 h-16 rounded-full bg-green-100 flex items-center justify-center border-4 border-green-200">
-                <svg className="w-8 h-8 text-green-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" /></svg>
-            </div>
-            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mt-6">You've been added to our waitlist!</h2>
-            <p className="text-gray-600 mt-2">Thank you for joining. You'll be the first to know when we are ready.</p>
-            <div className="my-6 flex justify-center">
-                <div className="flex -space-x-3 overflow-hidden">
-                    <img className="inline-block h-10 w-10 rounded-full ring-2 ring-white" src="https://images.unsplash.com/photo-1491528323818-fdd1faba62cc?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80" alt=""/>
-                    <img className="inline-block h-10 w-10 rounded-full ring-2 ring-white" src="https://images.unsplash.com/photo-1550525811-e5869dd03032?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80" alt=""/>
-                    <img className="inline-block h-10 w-10 rounded-full ring-2 ring-white" src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2.25&w=256&h=256&q=80" alt=""/>
-                    <img className="inline-block h-10 w-10 rounded-full ring-2 ring-white" src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80" alt=""/>
-                    <img className="inline-block h-10 w-10 rounded-full ring-2 ring-white" src="https://images.unsplash.com/photo-1517365830460-955ce3ccd263?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80" alt=""/>
-                </div>
-            </div>
-            <p className="text-sm text-gray-500">You're not alone, 1000+ people joined!</p>
-        </div>
-    </div>
-);
-
-// --- Policy Tooltip Component ---
-const PolicyTooltip = ({ content, position }) => {
-  if (!content) return null;
-  return (
-    <div
-      className="fixed bg-gray-800 text-white text-xs rounded-lg p-3 max-w-xs z-50 shadow-lg transition-opacity duration-200 animate-fade-in"
-      style={{ top: position.y + 15, left: position.x + 15 }}
-    >
-      <h4 className="font-bold mb-1">{content.title}</h4>
-      <p className="leading-relaxed">{content.text}</p>
-    </div>
-  );
-};
-
-// --- Main App Component ---
-export default function App() {
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [status, setStatus] = useState('idle');
-  const [message, setMessage] = useState('');
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [tooltip, setTooltip] = useState({ visible: false, content: null, position: { x: 0, y: 0 } });
-
-  const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxdpEh106O5SfFNziPeZbYqV98M53OGG7D1MVNCotbXvPszBVyhM-frGiPY9RO2ZOfe/exec';
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setMessage('');
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CreatorSuite - AI Toolkit for Creators</title>
     
-    if (!email || !/^\S+@\S+\.\S+$/.test(email)) {
-      setStatus('error');
-      setMessage('Please enter a valid email address.');
-      return;
-    }
-
-    if (GOOGLE_SCRIPT_URL === 'YOUR_GOOGLE_APPS_SCRIPT_URL_HERE') {
-        setStatus('error');
-        setMessage('Configuration Error: Please update the Google Script URL in the code.');
-        return;
-    }
-
-    setStatus('loading');
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
     
-    try {
-      fetch(GOOGLE_SCRIPT_URL, {
-        method: 'POST',
-        mode: 'no-cors',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email }),
-      });
-      // Optimistically show success
-      setShowSuccessModal(true);
-      setStatus('success');
-      setName('');
-      setEmail('');
+    <!-- React Libraries -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    
+    <!-- Babel for JSX Transpilation -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
-    } catch (error) {
-      console.error('Error submitting form:', error);
-      setStatus('error');
-      setMessage('An unexpected error occurred. Please try again.');
-    }
-  };
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&display=swap" rel="stylesheet">
 
-  const handlePolicyHover = (e, policyType) => {
-    const policies = {
-      privacy: { title: "Our Privacy Promise", text: "We collect your name and email only to notify you about the CreatorSuite launch. We will never sell your data to evil robots (or anyone else). Your info is safe with us." },
-      terms: { title: "Our Terms of Use", text: "By using our site, you agree to be awesome. Don't do anything illegal, and please don't try to break our stuff. Let's create cool things together!" }
-    };
-    setTooltip({ visible: true, content: policies[policyType], position: { x: e.clientX, y: e.clientY } });
-  };
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        @keyframes fade-in { 
+            from { opacity: 0; transform: translateY(5px); } 
+            to { opacity: 1; transform: translateY(0); } 
+        }
+        .animate-fade-in { 
+            animation: fade-in 0.2s ease-out forwards; 
+        }
+        @keyframes scale-in { 
+            from { transform: scale(0.95); opacity: 0; } 
+            to { transform: scale(1); opacity: 1; } 
+        }
+        .animate-scale-in { 
+            animation: scale-in 0.3s ease-out forwards; 
+        }
+    </style>
+</head>
+<body class="bg-white">
 
-  return (
-    <div className="bg-white text-gray-800 font-sans antialiased min-h-screen">
-      {showSuccessModal && <SuccessModal onClose={() => setShowSuccessModal(false)} />}
-      <PolicyTooltip content={tooltip.content} position={tooltip.position} />
-      
-       <header className="py-4 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto flex justify-between items-center">
-          <div className="flex items-center gap-2">
-            <svg className="w-7 h-7 text-purple-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 01-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 013.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 013.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 01-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.898 20.622L16.5 21.75l-.398-1.128a3.375 3.375 0 00-2.924-2.924l-1.128-.398 1.128-.398a3.375 3.375 0 002.924-2.924l.398-1.128.398 1.128a3.375 3.375 0 002.924 2.924l1.128.398-1.128.398a3.375 3.375 0 00-2.924 2.924z" /></svg>
-            <h1 className="text-xl font-bold text-gray-900">CreatorSuite</h1>
-          </div>
-          <div className="flex items-center gap-6">
-             <a href="#" className="hidden sm:block text-sm font-medium text-gray-500 hover:text-gray-900">Demo</a>
-             <a href="#" className="hidden sm:block text-sm font-medium text-gray-500 hover:text-gray-900">Careers</a>
-          </div>
-        </div>
-      </header>
-      
-      <main className="py-12 sm:py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="grid lg:grid-cols-2 lg:gap-24 items-center">
-                <div className="space-y-10">
-                    <h2 className="text-4xl lg:text-5xl font-extrabold text-gray-900 leading-tight">The all-in-one AI platform for modern creators.</h2>
-                    <div className="space-y-8">
-                        <FeatureListItem title="Have the right conversation, every time.">Powerful AI features like idea generation and scriptwriting let you organize and create compelling content with ease. 🔥</FeatureListItem>
-                        <FeatureListItem title="Ask your questions instantly. Get an answer.">Define the visual direction of your brand with AI-powered design tools that create stunning graphics and thumbnails. ✨</FeatureListItem>
-                        <FeatureListItem title="Safe and secure environment.">There is no fear of being scammed by anyone! Extra care is taken in protecting our users so they can complete the creative process with full transparency. 😊</FeatureListItem>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        // --- Reusable Components & Hooks ---
+        const CheckIcon = () => (
+            <svg className="w-6 h-6 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+            </svg>
+        );
+
+        const FeatureListItem = ({ title, children }) => {
+            return (
+                <div className="flex items-start gap-4">
+                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-purple-600 flex items-center justify-center mt-1">
+                        <CheckIcon />
+                    </div>
+                    <div>
+                        <h3 className="text-lg font-bold text-gray-900">{title}</h3>
+                        <p className="mt-1 text-gray-600 leading-relaxed">{children}</p>
                     </div>
                 </div>
-                <div className="mt-12 lg:mt-0">
-                    <div className="bg-white border border-gray-200 rounded-2xl p-8 shadow-lg">
-                        <h3 className="text-2xl font-bold text-gray-900">Join our journey and get early access</h3>
-                        <p className="mt-2 text-gray-600">Join our extensive waitlist today to spark connection and get notified when we launch. 🎊</p>
-                        <div className="my-6 flex justify-center">
-                            <div className="flex -space-x-3 overflow-hidden">
-                                <img className="inline-block h-10 w-10 rounded-full ring-2 ring-white" src="https://images.unsplash.com/photo-1491528323818-fdd1faba62cc?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80" alt=""/>
-                                <img className="inline-block h-10 w-10 rounded-full ring-2 ring-white" src="https://images.unsplash.com/photo-1550525811-e5869dd03032?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80" alt=""/>
-                                <img className="inline-block h-10 w-10 rounded-full ring-2 ring-white" src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2.25&w=256&h=256&q=80" alt=""/>
-                                <img className="inline-block h-10 w-10 rounded-full ring-2 ring-white" src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80" alt=""/>
-                                <div className="h-10 w-10 rounded-full ring-2 ring-white bg-purple-100 text-purple-700 flex items-center justify-center text-xs font-bold">+1k</div>
+            );
+        };
+
+        // --- Success Modal Component ---
+        const SuccessModal = ({ onClose }) => (
+            <div className="fixed inset-0 bg-green-400/20 backdrop-blur-sm flex items-center justify-center p-4 z-50 transition-opacity duration-300">
+                <div className="bg-white rounded-2xl p-8 sm:p-10 text-center max-w-md w-full shadow-2xl relative transform transition-all duration-300 scale-95 animate-scale-in">
+                    <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors">
+                        <svg className="w-6 h-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                    </button>
+                    <div className="mx-auto w-16 h-16 rounded-full bg-green-100 flex items-center justify-center border-4 border-green-200">
+                        <svg className="w-8 h-8 text-green-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" /></svg>
+                    </div>
+                    <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mt-6">You've been added to our waitlist!</h2>
+                    <p className="text-gray-600 mt-2">Thank you for joining. You'll be the first to know when we are ready.</p>
+                    <div className="my-6 flex justify-center">
+                        <div className="flex -space-x-3 overflow-hidden">
+                            <img className="inline-block h-10 w-10 rounded-full ring-2 ring-white" src="https://images.unsplash.com/photo-1491528323818-fdd1faba62cc?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80" alt=""/>
+                            <img className="inline-block h-10 w-10 rounded-full ring-2 ring-white" src="https://images.unsplash.com/photo-1550525811-e5869dd03032?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80" alt=""/>
+                            <img className="inline-block h-10 w-10 rounded-full ring-2 ring-white" src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2.25&w=256&h=256&q=80" alt=""/>
+                            <img className="inline-block h-10 w-10 rounded-full ring-2 ring-white" src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80" alt=""/>
+                            <img className="inline-block h-10 w-10 rounded-full ring-2 ring-white" src="https://images.unsplash.com/photo-1517365830460-955ce3ccd263?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80" alt=""/>
+                        </div>
+                    </div>
+                    <p className="text-sm text-gray-500">You're not alone, 1000+ people joined!</p>
+                </div>
+            </div>
+        );
+
+        // --- Policy Tooltip Component ---
+        const PolicyTooltip = ({ content, position }) => {
+          if (!content) return null;
+          return (
+            <div
+              className="fixed bg-gray-800 text-white text-xs rounded-lg p-3 max-w-xs z-50 shadow-lg transition-opacity duration-200 animate-fade-in"
+              style={{ top: position.y + 15, left: position.x + 15 }}
+            >
+              <h4 className="font-bold mb-1">{content.title}</h4>
+              <p className="leading-relaxed">{content.text}</p>
+            </div>
+          );
+        };
+
+        // --- Main App Component ---
+        function App() {
+          const [name, setName] = useState('');
+          const [email, setEmail] = useState('');
+          const [status, setStatus] = useState('idle');
+          const [message, setMessage] = useState('');
+          const [showSuccessModal, setShowSuccessModal] = useState(false);
+          const [tooltip, setTooltip] = useState({ visible: false, content: null, position: { x: 0, y: 0 } });
+
+          const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxdpEh106O5SfFNziPeZbYqV98M53OGG7D1MVNCotbXvPszBVyhM-frGiPY9RO2ZOfe/exec';
+
+          const handleSubmit = async (e) => {
+            e.preventDefault();
+            setMessage('');
+            
+            if (!email || !/^\S+@\S+\.\S+$/.test(email)) {
+              setStatus('error');
+              setMessage('Please enter a valid email address.');
+              return;
+            }
+
+            if (GOOGLE_SCRIPT_URL === 'https://script.google.com/macros/s/AKfycbxdpEh106O5SfFNziPeZbYqV98M53OGG7D1MVNCotbXvPszBVyhM-frGiPY9RO2ZOfe/exec') {
+                setStatus('error');
+                setMessage('Configuration Error: Please update the Google Script URL in the code.');
+                return;
+            }
+
+            setStatus('loading');
+            
+            try {
+              fetch(GOOGLE_SCRIPT_URL, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, email }),
+              });
+              setShowSuccessModal(true);
+              setStatus('success');
+              setName('');
+              setEmail('');
+
+            } catch (error) {
+              console.error('Error submitting form:', error);
+              setStatus('error');
+              setMessage('An unexpected error occurred. Please try again.');
+            }
+          };
+
+          const handlePolicyHover = (e, policyType) => {
+            const policies = {
+              privacy: { title: "Our Privacy Promise", text: "We collect your name and email only to notify you about the CreatorSuite launch. We will never sell your data to evil robots (or anyone else). Your info is safe with us." },
+              terms: { title: "Our Terms of Use", text: "By using our site, you agree to be awesome. Don't do anything illegal, and please don't try to break our stuff. Let's create cool things together!" }
+            };
+            setTooltip({ visible: true, content: policies[policyType], position: { x: e.clientX, y: e.clientY } });
+          };
+
+          return (
+            <div className="text-gray-800 font-sans antialiased min-h-screen">
+              {showSuccessModal && <SuccessModal onClose={() => setShowSuccessModal(false)} />}
+              <PolicyTooltip content={tooltip.content} position={tooltip.position} />
+              
+               <header className="py-4 px-4 sm:px-6 lg:px-8">
+                <div className="max-w-7xl mx-auto flex justify-between items-center">
+                  <div className="flex items-center gap-2">
+                    <svg className="w-7 h-7 text-purple-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 01-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 013.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 013.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 01-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.898 20.622L16.5 21.75l-.398-1.128a3.375 3.375 0 00-2.924-2.924l-1.128-.398 1.128-.398a3.375 3.375 0 002.924-2.924l.398-1.128.398 1.128a3.375 3.375 0 002.924 2.924l1.128.398-1.128.398a3.375 3.375 0 00-2.924 2.924z" /></svg>
+                    <h1 className="text-xl font-bold text-gray-900">CreatorSuite</h1>
+                  </div>
+                  <div className="flex items-center gap-6">
+                     <a href="#" className="hidden sm:block text-sm font-medium text-gray-500 hover:text-gray-900">Demo</a>
+                     <a href="#" className="hidden sm:block text-sm font-medium text-gray-500 hover:text-gray-900">Careers</a>
+                  </div>
+                </div>
+              </header>
+              
+              <main className="py-12 sm:py-20">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div className="grid lg:grid-cols-2 lg:gap-24 items-center">
+                        <div className="space-y-10">
+                            <h2 className="text-4xl lg:text-5xl font-extrabold text-gray-900 leading-tight">The all-in-one AI platform for modern creators.</h2>
+                            <div className="space-y-8">
+                                <FeatureListItem title="Have the right conversation, every time.">Powerful AI features like idea generation and scriptwriting let you organize and create compelling content with ease. 🔥</FeatureListItem>
+                                <FeatureListItem title="Ask your questions instantly. Get an answer.">Define the visual direction of your brand with AI-powered design tools that create stunning graphics and thumbnails. ✨</FeatureListItem>
+                                <FeatureListItem title="Safe and secure environment.">There is no fear of being scammed by anyone! Extra care is taken in protecting our users so they can complete the creative process with full transparency. 😊</FeatureListItem>
                             </div>
                         </div>
-                        <form onSubmit={handleSubmit} className="space-y-4">
-                            <div><input type="text" value={name} onChange={(e) => setName(e.target.value)} className="w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 focus:outline-none transition shadow-sm" placeholder="Tell us your name..."/></div>
-                            <div><input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 focus:outline-none transition shadow-sm" placeholder="Enter your email address..." required disabled={status === 'loading'}/></div>
-                            <button type="submit" className="w-full flex items-center justify-center rounded-lg bg-purple-600 px-6 py-3.5 text-base font-semibold text-white shadow-lg hover:bg-purple-700 transform transition-all duration-300 disabled:opacity-50" disabled={status === 'loading'}>
-                                <span>{status === 'loading' ? 'Submitting...' : 'Continue'}</span>
-                                <svg className="w-5 h-5 ml-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
-                            </button>
-                        </form>
-                        {status === 'error' && message && <p className="mt-4 text-sm font-medium text-center text-red-600">{message}</p>}
-                        <p className="mt-4 text-xs text-gray-500 text-center">By clicking "continue" you agree to our <span className="underline hover:text-gray-800 cursor-pointer" onMouseEnter={(e) => handlePolicyHover(e, 'privacy')} onMouseLeave={() => setTooltip({ visible: false })}>Privacy Policy</span> and <span className="underline hover:text-gray-800 cursor-pointer" onMouseEnter={(e) => handlePolicyHover(e, 'terms')} onMouseLeave={() => setTooltip({ visible: false })}>Terms of Use</span>.</p>
+                        <div className="mt-12 lg:mt-0">
+                            <div className="bg-white border border-gray-200 rounded-2xl p-8 shadow-lg">
+                                <h3 className="text-2xl font-bold text-gray-900">Join our journey and get early access</h3>
+                                <p className="mt-2 text-gray-600">Join our extensive waitlist today to spark connection and get notified when we launch. 🎊</p>
+                                <div className="my-6 flex justify-center">
+                                    <div className="flex -space-x-3 overflow-hidden">
+                                        <img className="inline-block h-10 w-10 rounded-full ring-2 ring-white" src="https://images.unsplash.com/photo-1491528323818-fdd1faba62cc?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80" alt=""/>
+                                        <img className="inline-block h-10 w-10 rounded-full ring-2 ring-white" src="https://images.unsplash.com/photo-1550525811-e5869dd03032?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80" alt=""/>
+                                        <img className="inline-block h-10 w-10 rounded-full ring-2 ring-white" src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2.25&w=256&h=256&q=80" alt=""/>
+                                        <img className="inline-block h-10 w-10 rounded-full ring-2 ring-white" src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80" alt=""/>
+                                        <div className="h-10 w-10 rounded-full ring-2 ring-white bg-purple-100 text-purple-700 flex items-center justify-center text-xs font-bold">+1k</div>
+                                    </div>
+                                </div>
+                                <form onSubmit={handleSubmit} className="space-y-4">
+                                    <div><input type="text" value={name} onChange={(e) => setName(e.target.value)} className="w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 focus:outline-none transition shadow-sm" placeholder="Tell us your name..."/></div>
+                                    <div><input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 focus:outline-none transition shadow-sm" placeholder="Enter your email address..." required disabled={status === 'loading'}/></div>
+                                    <button type="submit" className="w-full flex items-center justify-center rounded-lg bg-purple-600 px-6 py-3.5 text-base font-semibold text-white shadow-lg hover:bg-purple-700 transform transition-all duration-300 disabled:opacity-50" disabled={status === 'loading'}>
+                                        <span>{status === 'loading' ? 'Submitting...' : 'Continue'}</span>
+                                        <svg className="w-5 h-5 ml-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
+                                    </button>
+                                </form>
+                                {status === 'error' && message && <p className="mt-4 text-sm font-medium text-center text-red-600">{message}</p>}
+                                <p className="mt-4 text-xs text-gray-500 text-center">By clicking "continue" you agree to our <span className="underline hover:text-gray-800 cursor-pointer" onMouseEnter={(e) => handlePolicyHover(e, 'privacy')} onMouseLeave={() => setTooltip({ visible: false })}>Privacy Policy</span> and <span className="underline hover:text-gray-800 cursor-pointer" onMouseEnter={(e) => handlePolicyHover(e, 'terms')} onMouseLeave={() => setTooltip({ visible: false })}>Terms of Use</span>.</p>
+                            </div>
+                            <div className="mt-6 text-center bg-green-100 border border-green-200 text-green-800 p-3 rounded-lg"><p className="text-sm font-semibold">✨ Waitlist Offer: Join now and get your first month completely FREE!</p></div>
+                        </div>
                     </div>
-                    <div className="mt-6 text-center bg-green-100 border border-green-200 text-green-800 p-3 rounded-lg"><p className="text-sm font-semibold">✨ Waitlist Offer: Join now and get your first month completely FREE!</p></div>
                 </div>
+              </main>
+
+              <footer className="py-10 mt-12">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+                    <p className="text-sm text-gray-500">&copy; {new Date().getFullYear()} CreatorSuite. Built with passion in Sri Lanka.</p>
+                </div>
+              </footer>
             </div>
-        </div>
-      </main>
+          );
+        }
 
-      <footer className="py-10 mt-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <p className="text-sm text-gray-500">&copy; {new Date().getFullYear()} CreatorSuite. Built with passion in Sri Lanka.</p>
-        </div>
-      </footer>
-      
-      <style>{`
-        @keyframes fade-in { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
-        .animate-fade-in { animation: fade-in 0.2s ease-out forwards; }
-        @keyframes scale-in { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-        .animate-scale-in { animation: scale-in 0.3s ease-out forwards; }
-      `}</style>
-    </div>
-  );
-}
-
-// --- Google Apps Script Code ---
-/*
-function doPost(e) {
-  try {
-    var requestData = JSON.parse(e.postData.contents);
-    var name = requestData.name || "";
-    var email = requestData.email;
-    if (!email) {
-      return ContentService.createTextOutput(JSON.stringify({ "status": "error", "message": "Email not provided" })).setMimeType(ContentService.MimeType.JSON);
-    }
-    var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("CreatorSuite Waitlist");
-    if (!sheet) {
-      sheet = SpreadsheetApp.getActiveSpreadsheet().insertSheet("CreatorSuite Waitlist");
-      sheet.appendRow(["Timestamp", "Name", "Email"]);
-    }
-    sheet.appendRow([new Date(), name, email]);
-    return ContentService.createTextOutput(JSON.stringify({ "status": "success", "message": "Email added" })).setMimeType(ContentService.MimeType.JSON);
-  } catch (err) {
-    return ContentService.createTextOutput(JSON.stringify({ "status": "error", "message": err.toString() })).setMimeType(ContentService.MimeType.JSON);
-  }
-}
-*/
+        const container = document.getElementById('root');
+        const root = ReactDOM.createRoot(container);
+        root.render(<App />);
+    </script>
+</body>
+</html>
